@@ -1,5 +1,9 @@
 Revision history for Perl extension Data::ToruCa.
 
+0.02  Mon Oct 31 15:45:04 JST 2005
+	- It is deleted that _build overlapped.
+		report by konet3 at gmail.com
+
 0.01  Thu Oct 27 21:24:53 2005
 	- original version; created by h2xs 1.23 with options
 		-X -A Data::ToruCa

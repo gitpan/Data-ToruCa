@@ -3,7 +3,7 @@ package Data::ToruCa;
 use strict;
 use MIME::Base64;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 our $VERBOSE = 0;
 
@@ -67,22 +67,6 @@ sub parse {
         }
     }
     return 1;
-}
-
-sub _build {
-    my $self = shift;
-
-    _warn 'length of (url & data1 & data2 & data3) is too large(173 bytes).'
-        if length($self->url.$self->data1.$self->data2.$self->data3) > 173;
-
-    _warn 'url schme error (http only).'
-        unless $self->url =~ m|^http://|i;
-
-    $self->version('1.0') unless $self->version;
-    $self->type('SNIP') unless $self->type;
-    $self->cat('0000') unless $self->cat =~ m|^[0-9a-fA-F]{4,4}$|;
-    $self->cat('0000') unless $self->cat;
-    $self->cat(uc($self->cat));
 }
 
 sub _build {
