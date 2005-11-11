@@ -1,5 +1,9 @@
 Revision history for Perl extension Data::ToruCa.
 
+0.03  Fri Nov 11 19:30:04 JST 2005
+	- Change of data1 filed size.
+	- Add mime setter/getter.
+
 0.02  Mon Oct 31 15:45:04 JST 2005
 	- It is deleted that _build overlapped.
 		report by konet3 at gmail.com

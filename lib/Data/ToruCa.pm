@@ -3,7 +3,7 @@ package Data::ToruCa;
 use strict;
 use MIME::Base64;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 our $VERBOSE = 0;
 
@@ -44,10 +44,11 @@ sub _accessor {
 sub version {shift->_accessor('version', 4, @_)}
 sub type    {shift->_accessor('type', 8, @_)}
 sub url     {shift->_accessor('url', 127, @_)}
-sub data1   {shift->_accessor('data1', 20, @_)}
+sub data1   {shift->_accessor('data1', 40, @_)}
 sub data2   {shift->_accessor('data2', 100, @_)}
 sub data3   {shift->_accessor('data3', 20, @_)}
 sub cat     {shift->_accessor('cat', 4, @_)}
+sub mime    {my $self = shift;return $self->{mime} = @_ ? shift : $self->{mime}}
 
 sub parse {
     my $self = shift;
@@ -58,13 +59,23 @@ sub parse {
         return 0;
     }
 
+    my $mime;
+    my $c = 0;
     foreach (split(/\r\n/, $trc)) {
-        if (/^([^:]+): (.+)$/) {
+        if (/^([^:]+): (.+)$/ && $c < 3) {
             my ($field, $data) = (lc($1), $2);
             $data = decode_base64($data)
                 if ($field =~ /^data/);
             $self->_accessor($field, 200, $data);
+        } else {
+            $c++;
+            $mime .= "$_\r\n" if $c > 2;
         }
+    }
+    if ($mime) {
+        $mime =~ s/^\r\n//;
+        $mime =~ s/\r\n$//;
+        $self->mime($mime);
     }
     return 1;
 }
@@ -244,6 +255,10 @@ getter/setter of ToruCa Data3.
 =item cat([$set_data])
 
 getter/setter of ToruCa category.
+
+=item cat([$set_data])
+
+getter/setter of MIME data of ToruCa Detail data.
 
 =item parse($toruca_object)
 
