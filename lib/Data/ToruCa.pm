@@ -3,8 +3,13 @@ package Data::ToruCa;
 use strict;
 use MIME::Base64;
 
-our $VERSION = '0.03';
+use vars qw(@ISA @EXPORT_OK);
 
+require Exporter;
+@ISA = qw(Exporter);
+@EXPORT_OK = qw(cat2pict);
+
+our $VERSION = '0.04';
 our $VERBOSE = 0;
 
 sub new {
@@ -49,6 +54,7 @@ sub data2   {shift->_accessor('data2', 100, @_)}
 sub data3   {shift->_accessor('data3', 20, @_)}
 sub cat     {shift->_accessor('cat', 4, @_)}
 sub mime    {my $self = shift;return $self->{mime} = @_ ? shift : $self->{mime}}
+sub pict    {my $self = shift;$self->cat2pict($self->cat);}
 
 sub parse {
     my $self = shift;
@@ -101,26 +107,33 @@ sub build {
 
     $self->_build;
 
-    return "ToruCa\r\n".
-    'Version: '. $self->version. "\r\n".
-    'Type: '. $self->type. "\r\n".
-    "\r\n".
-    'URL: '. $self->url. "\r\n".
-    'Data1: '. $self->_base64($self->data1). "\r\n".
-    'Data2: '. $self->_base64($self->data2). "\r\n".
-    'Data3: '. $self->_base64($self->data3). "\r\n".
-    'Cat: '. $self->cat. "\r\n".
+    return "ToruCa\r\n" .
+    'Version: ' . $self->version. "\r\n" .
+    'Type: ' . $self->type . "\r\n" .
+    "\r\n" .
+    'URL: '. $self->url . "\r\n" .
+    'Data1: ' . $self->_base64($self->data1) . "\r\n" .
+    'Data2: ' . $self->_base64($self->data2) . "\r\n" .
+    'Data3: ' . $self->_base64($self->data3) . "\r\n" .
+    'Cat: ' . $self->cat. "\r\n" .
     "\r\n";
+}
+
+sub detail_build {
+    my $self = shift;
+
+    my $type = $self->type;
+    $self->type('CARD');
+    my $toruca = $self->build;
+    $self->type($type);
+
+    return $toruca . $self->mime;
 }
 
 sub html_build {
     my $self = shift;
     my $html = shift;
 
-
-    my $toruca = $self->build;
-
-    srand(time | $$);
     my $boundary;
     my $i = 0;
     while (1) {
@@ -130,16 +143,20 @@ sub html_build {
         last unless $html =~ /$boundary/;
     }
 
-    return $toruca
-        . "MIME-Version: 1.0\r\n"
-        . "Content-Type: multipart/mixed;boundary=\"$boundary\"\r\n"
-        . "\r\n"
-        . "--$boundary\r\n"
-        . "Content-Type: text/html; charset=Shift_JIS\r\n"
-        . "Content-Transfer-Encoding: 8bit\r\n"
-        . "\r\n"
-        . "$html\r\n"
-        . "--$boundary--\r\n";
+    my $mime = $self->mime;
+    $self->mime("MIME-Version: 1.0\r\n" .
+		"Content-Type: multipart/mixed;boundary=\"$boundary\"\r\n" .
+		"\r\n" .
+		"--$boundary\r\n" .
+		"Content-Type: text/html; charset=Shift_JIS\r\n" .
+		"Content-Transfer-Encoding: 8bit\r\n" .
+		"\r\n" .
+		"$html\r\n" .
+		"--$boundary--\r\n");
+    my $toruca = $self->detail_build;
+    $self->mime($mime);
+
+    return $toruca;
 }
 
 sub rw_build {
@@ -174,6 +191,35 @@ sub _base64 {
     return $data;
 }
 
+sub cat2pict {
+    my $cat = ref($_[0]) eq __PACKAGE__ ? $_[1] : $_[0];
+    return '' unless $cat =~ /^[0-9A-F]{1,4}$/io;
+    $cat =~ s/^0+//o;
+
+    my $base = hex($cat);
+    my $pad = 63646;
+    if ($base > 94 && $base < 105) {
+        $pad = 63808 - 95;
+    } elsif ($base > 104 && $base < 118) {
+        $pad = 63858 - 105;
+    } elsif ($base > 117 && $base < 135) {
+        $pad = 63872 - 118;
+    } elsif ($base eq 135) {
+        $pad = 63920 - 135;
+    } elsif ($base > 135 && $base < 167) {
+        $pad = 63889 - 136;
+    } elsif ($base > 166 && $base < 170) {
+        $pad = 63824 - 167;
+    } elsif ($base > 169 && $base < 173) {
+        $pad = 63829 - 170;
+    } elsif ($base > 172 && $base < 177) {
+        $pad = 63835 - 173;
+    } elsif ($base > 176) {
+        $pad = 63921 - 177;
+    }
+    return pack('n', $pad + $base);
+}
+
 1;
 __END__
 
@@ -204,9 +250,26 @@ Data::ToruCa - ToruCa of NTT DoCoMo for treated.
     $trc->type('CARD');
     $trc->html_build('<a href='http://example.jp/'>top page</a>');
 
+    $trc->mime($mime_parts);
+    print $trc->detail_build;
+
+  use Data::ToruCa qw(cat2pict);
+  print cat2pict('0001');#print 'sun' pict of imode.
+
+
 =head1 DESCRIPTION
 
 ToruCa that the cellular phone of NTT DoCoMo in Japan uses is treated.
+
+=head1 Export
+
+=over 4
+
+=item cat2pic($category_code)
+
+convert to imode pict from category code of toruca.
+
+=back
 
 =head1 Methods
 
@@ -256,7 +319,11 @@ getter/setter of ToruCa Data3.
 
 getter/setter of ToruCa category.
 
-=item cat([$set_data])
+=item pict
+
+convert to imode pict from category code of toruca of this object.
+
+=item mime([$set_data])
 
 getter/setter of MIME data of ToruCa Detail data.
 
@@ -267,6 +334,11 @@ The ToruCa data is anakyzed.
 =item build
 
 The ToruCa data is made.
+
+=item detail_build
+
+The ToruCa data of detail is made.
+use mime data.
 
 =item html_build
 
