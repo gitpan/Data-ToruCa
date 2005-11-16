@@ -1,5 +1,8 @@
 Revision history for Perl extension Data::ToruCa.
 
+0.05  Wed Nov 16 14:01:25 JST 2005
+        - refactaring of parse method.
+
 0.04  Tue Nov 15 22:41:20 JST 2005
 	- Add cat2pict exporter.
 	- Add detail_build method.

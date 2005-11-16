@@ -9,7 +9,7 @@ require Exporter;
 @ISA = qw(Exporter);
 @EXPORT_OK = qw(cat2pict);
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 our $VERBOSE = 0;
 
 sub new {
@@ -68,15 +68,18 @@ sub parse {
     my $mime;
     my $c = 0;
     foreach (split(/\r\n/, $trc)) {
-        if (/^([^:]+): (.+)$/ && $c < 3) {
-            my ($field, $data) = (lc($1), $2);
-            $data = decode_base64($data)
-                if ($field =~ /^data/);
-            $self->_accessor($field, 200, $data);
-        } else {
-            $c++;
-            $mime .= "$_\r\n" if $c > 2;
-        }
+	if ($c < 2) {
+	    if (/^([^:]+): (.+)$/) {
+		my ($field, $data) = (lc($1), $2);
+		$data = decode_base64($data)
+		    if ($field =~ /^data/);
+		$self->_accessor($field, 200, $data);
+	    } elsif ($_ eq '') {
+		$c++;
+	    }
+	} else {
+	    $mime .= "$_\r\n";
+	}
     }
     if ($mime) {
         $mime =~ s/^\r\n//;
