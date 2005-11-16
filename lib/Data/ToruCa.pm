@@ -9,7 +9,7 @@ require Exporter;
 @ISA = qw(Exporter);
 @EXPORT_OK = qw(cat2pict);
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 our $VERBOSE = 0;
 
 sub new {
